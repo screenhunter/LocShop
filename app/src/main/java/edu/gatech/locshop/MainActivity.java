@@ -1,10 +1,16 @@
 package edu.gatech.locshop;
 
+import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -16,6 +22,12 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
+
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -37,12 +49,16 @@ public class MainActivity extends AppCompatActivity {
     private EditText addTaskBox;
     private DatabaseReference databaseReference;
     private List<Task> allTask;
-    private LocationManager locationManager;
+    private LocationCallback mLocationCallback;
+    private FusedLocationProviderClient mFusedLocationClient;
+    private LocationRequest mFusedLocationRquest;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+
         allTask = new ArrayList<Task>();
         databaseReference = FirebaseDatabase.getInstance().getReference();
         addTaskBox = (EditText)findViewById(R.id.add_task_box);
@@ -88,6 +104,53 @@ public class MainActivity extends AppCompatActivity {
             public void onCancelled(DatabaseError databaseError) {
             }
         });
+
+        mLocationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                if (locationResult == null) {
+                    Log.d("Location:", "null");
+                    return;
+                }
+                Location testLoc = new Location("Test Location");
+                testLoc.setLatitude(0);
+                testLoc.setLongitude(0);
+                for (Location location : locationResult.getLocations()) {
+
+                    Log.d("Location:", location.getLatitude() + " " + location.getLongitude() + " " + location.distanceTo(testLoc));
+
+                    if (location.distanceTo(testLoc) < 5) {
+                        Toast.makeText(MainActivity.this, "Within Distance!", Toast.LENGTH_LONG).show();
+                    }
+                }
+            }
+        };
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(getApplicationContext());
+        mFusedLocationRquest = new LocationRequest();
+        mFusedLocationRquest.setInterval(100);
+        mFusedLocationRquest.setFastestInterval(100);
+        mFusedLocationRquest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        if (ContextCompat.checkSelfPermission(this , Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            Log.d("Location","Coarse Not available" );
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1
+                    );
+        } else {
+            Log.d("Location", "Coarse Available");
+        }
+        if (ContextCompat.checkSelfPermission(this , Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            Log.d("Location","Fine Not available" );
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1
+            );
+        } else {
+            Log.d("Location", "Fine Available");
+        }
+        mFusedLocationClient.requestLocationUpdates(mFusedLocationRquest,mLocationCallback,null);
+
+
     }
     private void getAllTask(DataSnapshot dataSnapshot){
         for(DataSnapshot singleSnapshot : dataSnapshot.getChildren()){
@@ -111,4 +174,5 @@ public class MainActivity extends AppCompatActivity {
             recyclerView.setAdapter(recyclerViewAdapter);
         }
     }
+
 }
