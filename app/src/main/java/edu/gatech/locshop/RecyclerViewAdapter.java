@@ -8,10 +8,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import java.util.List;
 public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolders> {
-    private List<Task> task;
+    private List<Item> task;
     private List<String> highlighted;
     protected Context context;
-    public RecyclerViewAdapter(Context context, List<Task> task, List<String> highlighted) {
+    public RecyclerViewAdapter(Context context, List<Item> task, List<String> highlighted) {
         this.task = task;
         this.context = context;
         this.highlighted = highlighted;

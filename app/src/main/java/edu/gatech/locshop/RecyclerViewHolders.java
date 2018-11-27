@@ -17,8 +17,8 @@ public class RecyclerViewHolders extends RecyclerView.ViewHolder{
     private static final String TAG = RecyclerViewHolders.class.getSimpleName();
     public TextView categoryTitle;
     public ImageView deleteIcon;
-    private List<Task> taskObject;
-    public RecyclerViewHolders(final View itemView, final List<Task> taskObject) {
+    private List<Item> taskObject;
+    public RecyclerViewHolders(final View itemView, final List<Item> taskObject) {
         super(itemView);
         this.taskObject = taskObject;
         categoryTitle = (TextView)itemView.findViewById(R.id.task_title);
@@ -28,7 +28,7 @@ public class RecyclerViewHolders extends RecyclerView.ViewHolder{
             public void onClick(View v) {
                 Toast.makeText(v.getContext(), "Delete icon has been clicked", Toast.LENGTH_LONG).show();
                 String taskTitle = taskObject.get(getAdapterPosition()).getTask();
-                Log.d(TAG, "Task Title " + taskTitle);
+                Log.d(TAG, "Item Title " + taskTitle);
                 DatabaseReference ref = FirebaseDatabase.getInstance().getReference();
                 Query applesQuery = ref.child("tasks").orderByChild("task").equalTo(taskTitle);
                 applesQuery.addListenerForSingleValueEvent(new ValueEventListener() {

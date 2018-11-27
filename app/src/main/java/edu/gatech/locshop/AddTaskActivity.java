@@ -1,20 +1,18 @@
 package edu.gatech.locshop;
 
-import android.location.Location;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.text.TextUtils;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Spinner;
-import android.widget.Toast;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+
+import java.util.ArrayList;
 
 public class AddTaskActivity extends AppCompatActivity {
 
@@ -33,10 +31,11 @@ public class AddTaskActivity extends AppCompatActivity {
 
         databaseReference = FirebaseDatabase.getInstance().getReference();
 
+        ArrayList<String> storeList =  this.getIntent().getStringArrayListExtra("storeList");
+
         selectStore = findViewById(R.id.add_task_spinner);
         // Create an ArrayAdapter using the string array and a default spinner layout
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
-                R.array.stores_array, android.R.layout.simple_spinner_item);
+        ArrayAdapter<CharSequence> adapter = new ArrayAdapter(this, android.R.layout.simple_spinner_item, storeList);
         // Specify the layout to use when the list of choices appears
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         // Apply the adapter to the spinner
@@ -49,7 +48,7 @@ public class AddTaskActivity extends AppCompatActivity {
             public void onClick(View view) {
                 String enteredName = nameInput.getText().toString();
                 String selectedStore = selectStore.getSelectedItem().toString();
-                Task taskObject = new Task(enteredName, selectedStore);
+                Item taskObject = new Item(enteredName, selectedStore);
                 databaseReference.child("tasks").push().setValue(taskObject);
                 finish();
 

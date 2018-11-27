@@ -46,6 +46,9 @@
             android:name=".AddStoreActivity"
             android:label="@string/title_activity_add_store"
             android:theme="@style/AppTheme.NoActionBar"></activity>
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyD0-2-8apnTZ0_sp2FqRGnIK0uk8IQOVlQ"/>
     </application>
 
 </manifest>

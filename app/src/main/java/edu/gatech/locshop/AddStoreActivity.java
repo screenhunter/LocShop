@@ -16,7 +16,7 @@ import com.google.firebase.database.FirebaseDatabase;
 
 public class AddStoreActivity extends AppCompatActivity {
 
-    EditText latInput, longInput;
+    EditText nameInput;
     Spinner selectStore;
     private DatabaseReference databaseReference;
 
@@ -27,30 +27,16 @@ public class AddStoreActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        latInput = (EditText) findViewById(R.id.store_lat_input);
-        longInput = (EditText) findViewById(R.id.store_long_input);
+        nameInput = findViewById(R.id.store_name_input);
 
         databaseReference = FirebaseDatabase.getInstance().getReference();
-
-        selectStore = findViewById(R.id.add_store_spinner);
-        // Create an ArrayAdapter using the string array and a default spinner layout
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
-                R.array.stores_array, android.R.layout.simple_spinner_item);
-        // Specify the layout to use when the list of choices appears
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        // Apply the adapter to the spinner
-        selectStore.setAdapter(adapter);
-
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.add_store_fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                double enteredlat = Double.parseDouble(latInput.getText().toString());
-                double enteredLong = Double.parseDouble(longInput.getText().toString());
-                Store store = new Store(enteredlat, enteredLong);
-                String selectedStore = selectStore.getSelectedItem().toString();
-                databaseReference.child("stores").child(selectedStore).push().setValue(store);
+                String enteredName = nameInput.getText().toString();
+                databaseReference.child("stores").push().setValue(enteredName);
                 finish();
 
             }

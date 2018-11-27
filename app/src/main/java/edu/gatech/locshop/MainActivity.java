@@ -1,37 +1,34 @@
 package edu.gatech.locshop;
 
 import android.Manifest;
-import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
-import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.Toolbar;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ProgressBar;
-import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.places.GeoDataClient;
+import com.google.android.gms.location.places.PlaceDetectionClient;
+import com.google.android.gms.location.places.PlaceLikelihood;
+import com.google.android.gms.location.places.PlaceLikelihoodBufferResponse;
+import com.google.android.gms.location.places.Places;
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -48,23 +45,25 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayoutManager linearLayoutManager;
     private RecyclerViewAdapter recyclerViewAdapter;
     private DatabaseReference databaseReference;
-    private List<Task> allTask;
-    private List<Location> targetLox, publixLox;
+    private List<Item> allTask;
     private List<String> highlighted;
+    private ArrayList<String> storeList;
     private LocationCallback mLocationCallback;
     private FusedLocationProviderClient mFusedLocationClient;
     private LocationRequest mFusedLocationRquest;
-
+    protected GeoDataClient mGeoDataClient;
+    protected PlaceDetectionClient mPlaceDetectionClient;
+    private int handelerDelay = 10000;
+    private Handler handler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        allTask = new ArrayList<Task>();
-        targetLox = new ArrayList<>();
-        publixLox = new ArrayList<>();
+        allTask = new ArrayList<Item>();
         highlighted = new ArrayList<>();
+        storeList = new ArrayList<>();
         databaseReference = FirebaseDatabase.getInstance().getReference();
         recyclerView = (RecyclerView)findViewById(R.id.task_list);
         linearLayoutManager = new LinearLayoutManager(this);
@@ -75,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(MainActivity.this, AddTaskActivity.class);
+                intent.putStringArrayListExtra("storeList", storeList);
                 startActivity(intent);
             }
         });
@@ -88,29 +88,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        databaseReference.child("stores").child("Publix").addChildEventListener(new ChildEventListener() {
+        databaseReference.child("stores").addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                addStoreToList(dataSnapshot, "Walmart");
-            }
-            @Override
-            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-            }
-            @Override
-            public void onChildRemoved(DataSnapshot dataSnapshot) {
-            }
-            @Override
-            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-            }
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-            }
-        });
-
-        databaseReference.child("stores").child("Target").addChildEventListener(new ChildEventListener() {
-            @Override
-            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                addStoreToList(dataSnapshot, "Target");
+                addStoreToList(dataSnapshot);
             }
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String s) {
@@ -147,74 +128,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        mLocationCallback = new LocationCallback() {
-            @Override
-            public void onLocationResult(LocationResult locationResult) {
-                if (locationResult == null) {
-                    Log.d("Location:", "null");
-                    return;
-                }
-                for (Location location : locationResult.getLocations()) {
-
-                    Log.d("Location:", location.toString());
-
-                    highlighted.clear();
-
-                    for (Location storeLoc: targetLox) {
-                        if (location.distanceTo(storeLoc) < 1000) {
-                            highlighted.add("Target");
-                            break;
-                        }
-                    }
-
-                    for (Location storeLoc: publixLox) {
-                        if (location.distanceTo(storeLoc) < 1000) {
-                            highlighted.add("Publix");
-                            break;
-                        }
-                    }
-                    updateRecycler();
-                }
-            }
-        };
-        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(getApplicationContext());
-        mFusedLocationRquest = new LocationRequest();
-        mFusedLocationRquest.setInterval(100);
-        mFusedLocationRquest.setFastestInterval(100);
-        mFusedLocationRquest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        if (ContextCompat.checkSelfPermission(this , Manifest.permission.ACCESS_COARSE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            Log.d("Location","Coarse Not available" );
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1
-                    );
-        } else {
-            Log.d("Location", "Coarse Available");
-        }
-        if (ContextCompat.checkSelfPermission(this , Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            Log.d("Location","Fine Not available" );
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1
-            );
-        } else {
-            Log.d("Location", "Fine Available");
-        }
-        mFusedLocationClient.requestLocationUpdates(mFusedLocationRquest,mLocationCallback,null);
+        find();
 
 
     }
-    private void addStoreToList(DataSnapshot dataSnapshot, String store){
+    private void addStoreToList(DataSnapshot dataSnapshot){
         Log.d("***", dataSnapshot.toString());
-        Store s = dataSnapshot.getValue(Store.class);
-        Location loc = new Location("");
-        loc.setLongitude(s.getLongitude());
-        loc.setLatitude(s.getLatitude());
-
-        if (store.equals("Target"))
-            targetLox.add(loc);
-        else
-            publixLox.add(loc);
+        String storeName = dataSnapshot.getValue(String.class);
+        storeList.add(storeName);
     }
 
     private void updateRecycler() {
@@ -226,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
             Log.d("***", dataSnapshot.toString());
             String taskTitle = dataSnapshot.child("task").getValue(String.class);
             String store = dataSnapshot.child("store").getValue(String.class);
-            allTask.add(new Task(taskTitle, store));
+            allTask.add(new Item(taskTitle, store));
             updateRecycler();
     }
     private void taskDeletion(DataSnapshot dataSnapshot){
@@ -236,9 +157,68 @@ public class MainActivity extends AppCompatActivity {
                 allTask.remove(i);
             }
         }
-        Log.d(TAG, "Task tile " + taskTitle);
+        Log.d(TAG, "Item tile " + taskTitle);
         recyclerViewAdapter.notifyDataSetChanged();
         updateRecycler();
+    }
+
+    private void checkPerm() {
+        if (ContextCompat.checkSelfPermission(this , Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            Log.d("Location","Fine Not available" );
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1
+            );
+        } else {
+            Log.d("Location", "Fine Available");
+        }
+    }
+
+    public void find() {
+
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(getApplicationContext());
+        mFusedLocationRquest = new LocationRequest();
+        mFusedLocationRquest.setInterval(10000);
+        mFusedLocationRquest.setFastestInterval(10000);
+        mFusedLocationRquest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        checkPerm();
+        mLocationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                mGeoDataClient = Places.getGeoDataClient(getApplicationContext());
+                mPlaceDetectionClient = Places.getPlaceDetectionClient(getApplicationContext());
+
+                Task<PlaceLikelihoodBufferResponse> placeResult = mPlaceDetectionClient.getCurrentPlace(null);
+                placeResult.addOnCompleteListener(new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
+                    @Override
+                    public void onComplete(@NonNull Task<PlaceLikelihoodBufferResponse> task) {
+                        PlaceLikelihoodBufferResponse likelyPlaces = task.getResult();
+                        highlighted.clear();
+                        for (PlaceLikelihood placeLikelihood : likelyPlaces) {
+                            for (String storeName: storeList)
+                                if (placeLikelihood.getPlace().getName().toString().toLowerCase().contains(storeName.toLowerCase())) {
+                                    addToHighlighted(storeName);
+                                }
+                            Log.i(TAG, String.format("Place '%s' %s has likelihood: %g",
+                                    placeLikelihood.getPlace().getName(),
+                                    placeLikelihood.getPlace().getLatLng() + "",
+                                    placeLikelihood.getLikelihood()));
+                        }
+                        updateRecycler();
+                        likelyPlaces.release();
+                    }
+                });
+            };
+        };
+        mFusedLocationClient.requestLocationUpdates(mFusedLocationRquest, mLocationCallback,null);
+
+    }
+
+    public void addToHighlighted(String storeName) {
+        if (!highlighted.contains(storeName))
+            highlighted.add(storeName);
     }
 
 }

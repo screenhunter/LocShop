@@ -2,14 +2,14 @@ package edu.gatech.locshop;
 
 import android.location.Location;
 
-public class Task {
+public class Item {
     private String task;
     private String store;
-    public Task() {}
-    public Task(String task) {
+    public Item() {}
+    public Item(String task) {
         this.task = task;
     }
-    public Task(String task, String store) {
+    public Item(String task, String store) {
         this.task = task;
         this.store = store;
     }
