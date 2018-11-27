@@ -7,57 +7,60 @@
     android:fitsSystemWindows="true"
     tools:context=".MainActivity">
 
-    <android.support.design.widget.AppBarLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:theme="@style/AppTheme.AppBarOverlay"
-        app:elevation="0dp">
-
-        <android.support.v7.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimaryDark"
-            app:layout_scrollFlags="scroll|enterAlways"
-            app:popupTheme="@style/AppTheme.PopupOverlay" />
-
-        <EditText
-            android:id="@+id/add_task_box"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_weight="7"
-            android:inputType="text" />
-
-        <Button
-            android:id="@+id/add_task_button"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_margin="0dp"
-            android:layout_weight="7"
-            android:padding="12dp"
-            android:text="Add Task" />
-
-        <android.support.v7.widget.RecyclerView
-            android:id="@+id/task_list"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_above="@+id/add_task_wrapper"
-            android:layout_alignParentTop="true"
-            android:layout_marginBottom="12dp"
-            android:orientation="vertical"
-            android:scrollbars="none">
-
-        </android.support.v7.widget.RecyclerView>
-
-    </android.support.design.widget.AppBarLayout>
-
     <LinearLayout
-        android:id="@+id/add_task_wrapper"
+        android:id="@+id/basic_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:orientation="horizontal">
+        android:orientation="vertical"
+        app:layout_anchor="@+id/basic_layout"
+        app:layout_anchorGravity="left|top">
+
+        <android.support.design.widget.AppBarLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:theme="@style/AppTheme.AppBarOverlay"
+            app:elevation="0dp">
+
+            <android.support.v7.widget.Toolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="?attr/colorPrimaryDark"
+                app:layout_scrollFlags="scroll|enterAlways"
+                app:popupTheme="@style/AppTheme.PopupOverlay" />
+
+        </android.support.design.widget.AppBarLayout>
+
+        <LinearLayout
+            android:id="@+id/add_task_wrapper"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/add_task_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Add Item" />
+
+            <Button
+                android:id="@+id/add_store_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Add Store" />
+
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/task_list"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_above="@+id/add_task_wrapper"
+                android:layout_alignParentTop="true"
+                android:layout_marginBottom="12dp"
+                android:orientation="vertical"
+                android:scrollbars="none" />
+
+
+        </LinearLayout>
 
     </LinearLayout>
 

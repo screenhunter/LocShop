@@ -9,6 +9,7 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -46,9 +47,10 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private LinearLayoutManager linearLayoutManager;
     private RecyclerViewAdapter recyclerViewAdapter;
-    private EditText addTaskBox;
     private DatabaseReference databaseReference;
     private List<Task> allTask;
+    private List<Location> targetLox, publixLox;
+    private List<String> highlighted;
     private LocationCallback mLocationCallback;
     private FusedLocationProviderClient mFusedLocationClient;
     private LocationRequest mFusedLocationRquest;
@@ -60,31 +62,71 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         allTask = new ArrayList<Task>();
+        targetLox = new ArrayList<>();
+        publixLox = new ArrayList<>();
+        highlighted = new ArrayList<>();
         databaseReference = FirebaseDatabase.getInstance().getReference();
-        addTaskBox = (EditText)findViewById(R.id.add_task_box);
         recyclerView = (RecyclerView)findViewById(R.id.task_list);
         linearLayoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(linearLayoutManager);
-        Button addTaskButton = (Button)findViewById(R.id.add_task_button);
+
+        Button addTaskButton = findViewById(R.id.add_task_button);
         addTaskButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String enteredTask = addTaskBox.getText().toString();
-                if(TextUtils.isEmpty(enteredTask)){
-                    Toast.makeText(MainActivity.this, "You must enter a task first", Toast.LENGTH_LONG).show();
-                    return;
-                }
-                if(enteredTask.length() < 1){
-                    Toast.makeText(MainActivity.this, "Task count must not be empty", Toast.LENGTH_LONG).show();
-                    return;
-                }
-                Task taskObject = new Task(enteredTask);
-                databaseReference.push().setValue(taskObject);
-                addTaskBox.setText("");
+                Intent intent = new Intent(MainActivity.this, AddTaskActivity.class);
+                startActivity(intent);
             }
         });
 
-        databaseReference.addChildEventListener(new ChildEventListener() {
+        Button addStoreButton = findViewById(R.id.add_store_button);
+        addStoreButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this, AddStoreActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        databaseReference.child("stores").child("Publix").addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                addStoreToList(dataSnapshot, "Walmart");
+            }
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+            }
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+            }
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+            }
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+
+        databaseReference.child("stores").child("Target").addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                addStoreToList(dataSnapshot, "Target");
+            }
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+            }
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+            }
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+            }
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+
+        databaseReference.child("tasks").addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                 getAllTask(dataSnapshot);
@@ -112,16 +154,26 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("Location:", "null");
                     return;
                 }
-                Location testLoc = new Location("Test Location");
-                testLoc.setLatitude(0);
-                testLoc.setLongitude(0);
                 for (Location location : locationResult.getLocations()) {
 
-                    Log.d("Location:", location.getLatitude() + " " + location.getLongitude() + " " + location.distanceTo(testLoc));
+                    Log.d("Location:", location.toString());
 
-                    if (location.distanceTo(testLoc) < 5) {
-                        Toast.makeText(MainActivity.this, "Within Distance!", Toast.LENGTH_LONG).show();
+                    highlighted.clear();
+
+                    for (Location storeLoc: targetLox) {
+                        if (location.distanceTo(storeLoc) < 1000) {
+                            highlighted.add("Target");
+                            break;
+                        }
                     }
+
+                    for (Location storeLoc: publixLox) {
+                        if (location.distanceTo(storeLoc) < 1000) {
+                            highlighted.add("Publix");
+                            break;
+                        }
+                    }
+                    updateRecycler();
                 }
             }
         };
@@ -152,27 +204,41 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
+    private void addStoreToList(DataSnapshot dataSnapshot, String store){
+        Log.d("***", dataSnapshot.toString());
+        Store s = dataSnapshot.getValue(Store.class);
+        Location loc = new Location("");
+        loc.setLongitude(s.getLongitude());
+        loc.setLatitude(s.getLatitude());
+
+        if (store.equals("Target"))
+            targetLox.add(loc);
+        else
+            publixLox.add(loc);
+    }
+
+    private void updateRecycler() {
+        recyclerViewAdapter = new RecyclerViewAdapter(MainActivity.this, allTask, highlighted);
+        recyclerView.setAdapter(recyclerViewAdapter);
+    }
+
     private void getAllTask(DataSnapshot dataSnapshot){
-        for(DataSnapshot singleSnapshot : dataSnapshot.getChildren()){
-            String taskTitle = singleSnapshot.getValue(String.class);
-            allTask.add(new Task(taskTitle));
-            recyclerViewAdapter = new RecyclerViewAdapter(MainActivity.this, allTask);
-            recyclerView.setAdapter(recyclerViewAdapter);
-        }
+            Log.d("***", dataSnapshot.toString());
+            String taskTitle = dataSnapshot.child("task").getValue(String.class);
+            String store = dataSnapshot.child("store").getValue(String.class);
+            allTask.add(new Task(taskTitle, store));
+            updateRecycler();
     }
     private void taskDeletion(DataSnapshot dataSnapshot){
-        for(DataSnapshot singleSnapshot : dataSnapshot.getChildren()) {
-            String taskTitle = singleSnapshot.getValue(String.class);
-            for(int i = 0; i < allTask.size(); i++){
-                if(allTask.get(i).getTask().equals(taskTitle)){
-                    allTask.remove(i);
-                }
+        String taskTitle = dataSnapshot.child("task").getValue(String.class);
+        for(int i = 0; i < allTask.size(); i++){
+            if(allTask.get(i).getTask().equals(taskTitle)){
+                allTask.remove(i);
             }
-            Log.d(TAG, "Task tile " + taskTitle);
-            recyclerViewAdapter.notifyDataSetChanged();
-            recyclerViewAdapter = new RecyclerViewAdapter(MainActivity.this, allTask);
-            recyclerView.setAdapter(recyclerViewAdapter);
         }
+        Log.d(TAG, "Task tile " + taskTitle);
+        recyclerViewAdapter.notifyDataSetChanged();
+        updateRecycler();
     }
 
 }

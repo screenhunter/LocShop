@@ -30,7 +30,7 @@ public class RecyclerViewHolders extends RecyclerView.ViewHolder{
                 String taskTitle = taskObject.get(getAdapterPosition()).getTask();
                 Log.d(TAG, "Task Title " + taskTitle);
                 DatabaseReference ref = FirebaseDatabase.getInstance().getReference();
-                Query applesQuery = ref.orderByChild("task").equalTo(taskTitle);
+                Query applesQuery = ref.child("tasks").orderByChild("task").equalTo(taskTitle);
                 applesQuery.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
